@@ -14,20 +14,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use emulated_integration_tests_common::impls::{assert_expected_events, bx, TestExt};
+use emulated_integration_tests_common::impls::{
+	assert_expected_events, bx, Parachain, RelayChain, TestExt,
+};
 use frame_support::assert_ok;
 use integration_tests_helpers::Chain;
-use polkadot_system_emulated_network::CollectivesPolkadotPara as CollectivesPolkadot;
+use polkadot_system_emulated_network::{
+	AssetHubPolkadotPara as AssetHubPolkadot, BridgeHubPolkadotPara as BridgeHubPolkadot,
+	CollectivesPolkadotPara as CollectivesPolkadot,
+};
 use sp_runtime::traits::Dispatchable;
-use xcm::latest::prelude::*;
-use xcm::{VersionedLocation, VersionedXcm};
+use xcm::{latest::prelude::*, VersionedLocation, VersionedXcm};
 
 #[cfg(test)]
 mod open_gov_on_asset_hub;
 #[cfg(test)]
 mod open_gov_on_relay;
 
-/// CollectivesPolkadot dispatches `pallet_xcm::send` with `OriginKind:Xcm` to the dest with encoded whitelist call.
+/// CollectivesPolkadot dispatches `pallet_xcm::send` with `OriginKind:Xcm` to the dest with encoded
+/// whitelist call.
 pub fn collectives_send_whitelist(
 	dest: Location,
 	encoded_whitelist_call: impl FnOnce() -> Vec<u8>,

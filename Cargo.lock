@@ -4959,6 +4959,8 @@ dependencies = [
 name = "governance-polkadot-integration-tests"
 version = "1.0.0"
 dependencies = [
+ "asset-hub-polkadot-runtime",
+ "bridge-hub-polkadot-runtime",
  "collectives-polkadot-runtime",
  "emulated-integration-tests-common",
  "frame-support",

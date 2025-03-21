@@ -28,7 +28,9 @@ emulated-integration-tests-common = { workspace = true }
 # Local
 asset-hub-polkadot-runtime = { workspace = true }
 bridge-hub-polkadot-runtime = { workspace = true }
-polkadot-runtime = { workspace = true }
-integration-tests-helpers = { workspace = true }
 collectives-polkadot-runtime = { workspace = true }
+coretime-polkadot-runtime = { workspace = true }
+integration-tests-helpers = { workspace = true }
+people-polkadot-runtime = { workspace = true }
+polkadot-runtime = { workspace = true }
 polkadot-system-emulated-network = { workspace = true }

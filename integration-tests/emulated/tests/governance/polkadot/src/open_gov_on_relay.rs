@@ -25,8 +25,6 @@ use sp_runtime::{
 	traits::{Dispatchable, Hash},
 	DispatchError,
 };
-// use xcm::latest::Location;
-// use xcm::latest::prelude::*;
 
 fn store_preimage(call: polkadot_runtime::RuntimeCall) -> H256 {
 	Polkadot::execute_with(|| {

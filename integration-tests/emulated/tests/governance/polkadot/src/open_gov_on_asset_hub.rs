@@ -33,10 +33,9 @@ fn assethub_can_authorize_upgrade_for_itself() {
 
 	let authorize_upgrade =
 		AssetHubRuntimeCall::Utility(pallet_utility::Call::<AssetHubRuntime>::force_batch {
-			calls: vec![
-				// upgrade the relaychain
-				AssetHubRuntimeCall::System(frame_system::Call::authorize_upgrade { code_hash }),
-			],
+			calls: vec![AssetHubRuntimeCall::System(frame_system::Call::authorize_upgrade {
+				code_hash,
+			})],
 		});
 
 	// bad origin

@@ -32,6 +32,7 @@ mod open_gov_on_asset_hub;
 #[cfg(test)]
 mod open_gov_on_relay;
 
+/// Wraps a runtime call in a whitelist preimage call and dispatches it
 pub fn dispatch_whitelisted_call_with_preimage<T>(
 	call: T::RuntimeCall,
 	origin: T::RuntimeOrigin,
@@ -53,6 +54,7 @@ where
 	})
 }
 
+/// Encodes a runtime call, stores its preimage (dispatch), and returns its H256 hash
 pub fn dispatch_store_preimage_call<T>(call: T::RuntimeCall) -> H256
 where
 	T: Chain,
@@ -74,6 +76,7 @@ where
 	})
 }
 
+/// Builds an XCM call to send an authorize upgrade message using the provided location
 pub fn build_xcm_send_authorize_upgrade_call<T, D>(location: Location) -> T::RuntimeCall
 where
 	T: Chain,

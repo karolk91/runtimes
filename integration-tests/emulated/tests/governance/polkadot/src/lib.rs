@@ -54,8 +54,8 @@ where
 	})
 }
 
-/// Encodes a runtime call, stores its preimage (dispatch), and returns its H256 hash
-pub fn dispatch_store_preimage_call<T>(call: T::RuntimeCall) -> H256
+/// Encodes a runtime call, stores it as a preimage, and returns its H256 hash
+pub fn dispatch_note_preimage_call<T>(call: T::RuntimeCall) -> H256
 where
 	T: Chain,
 	T::Runtime: frame_system::Config<Hash = H256> + pallet_preimage::Config,

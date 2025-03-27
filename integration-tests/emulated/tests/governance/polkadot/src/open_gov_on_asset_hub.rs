@@ -44,7 +44,7 @@ fn assethub_can_authorize_upgrade_for_itself() {
 	let ok_origin: AssetHubRuntimeOrigin = Origin::WhitelistedCaller.into();
 
 	// store preimage
-	let call_hash = dispatch_store_preimage_call::<AssetHubPolkadot>(authorize_upgrade.clone());
+	let call_hash = dispatch_note_preimage_call::<AssetHubPolkadot>(authorize_upgrade.clone());
 
 	// Err - when dispatch non-whitelisted
 	assert_err!(
@@ -115,7 +115,7 @@ fn assethub_can_authorize_upgrade_for_relay_chain() {
 	let ok_origin: AssetHubRuntimeOrigin = Origin::WhitelistedCaller.into();
 
 	// store preimage
-	let call_hash = dispatch_store_preimage_call::<AssetHubPolkadot>(authorize_upgrade.clone());
+	let call_hash = dispatch_note_preimage_call::<AssetHubPolkadot>(authorize_upgrade.clone());
 
 	// Err - when dispatch non-whitelisted
 	assert_err!(
@@ -193,7 +193,7 @@ fn assethub_can_authorize_upgrade_for_system_chains() {
 	let ok_origin: AssetHubRuntimeOrigin = Origin::WhitelistedCaller.into();
 
 	// store preimage
-	let call_hash = dispatch_store_preimage_call::<AssetHubPolkadot>(authorize_upgrade.clone());
+	let call_hash = dispatch_note_preimage_call::<AssetHubPolkadot>(authorize_upgrade.clone());
 
 	// Err - when dispatch non-whitelisted
 	assert_err!(

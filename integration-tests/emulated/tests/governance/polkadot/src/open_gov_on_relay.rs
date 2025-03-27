@@ -48,7 +48,7 @@ fn relaychain_can_authorize_upgrade_for_itself() {
 	let ok_origin: PolkadotRuntimeOrigin = Origin::WhitelistedCaller.into();
 
 	// store preimage
-	let call_hash = dispatch_store_preimage_call::<Polkadot>(authorize_upgrade.clone());
+	let call_hash = dispatch_note_preimage_call::<Polkadot>(authorize_upgrade.clone());
 
 	// Err - when dispatch non-whitelisted
 	assert_err!(
@@ -123,7 +123,7 @@ fn relaychain_can_authorize_upgrade_for_system_chains() {
 	let ok_origin: PolkadotRuntimeOrigin = Origin::WhitelistedCaller.into();
 
 	// store preimage
-	let call_hash = dispatch_store_preimage_call::<Polkadot>(authorize_upgrade.clone());
+	let call_hash = dispatch_note_preimage_call::<Polkadot>(authorize_upgrade.clone());
 
 	// Err - when dispatch non-whitelisted
 	assert_err!(

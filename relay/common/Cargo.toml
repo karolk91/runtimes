@@ -15,7 +15,10 @@ sp-api = { workspace = true }
 sp-runtime = { workspace = true }
 polkadot-primitives = { workspace = true }
 pallet-staking-reward-fn = { workspace = true }
-
+xcm = { workspace = true }
+xcm-executor = { workspace = true }
+frame-support = { workspace = true }
+log = { workspace = true }
 
 [features]
 default = ["std"]
@@ -27,4 +30,8 @@ std = [
 	"polkadot-primitives/std",
 	"sp-api/std",
 	"sp-runtime/std",
+	"xcm/std",
+	"xcm-executor/std",
+	"frame-support/std",
+	"log/std"
 ]

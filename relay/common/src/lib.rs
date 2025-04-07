@@ -17,8 +17,12 @@
 //! Shared code between the Kusama nd Polkadot RC Runtimes.
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use core::marker::PhantomData;
+use frame_support::traits::OriginTrait;
 use polkadot_primitives::Balance;
-use sp_runtime::{Perquintill, Saturating};
+use sp_runtime::{traits::Get, Perquintill, Saturating};
+use xcm::latest::{Location, OriginKind};
+use xcm_executor::traits::ConvertOrigin;
 
 /// Extra runtime APIs for kusama runtime.
 pub mod apis {
@@ -110,6 +114,26 @@ pub fn relay_era_payout(params: EraPayoutParams) -> (Balance, Balance) {
 		// treasury amount with: `rest = rest.min(cap_rest);`
 	}
 	(staking_payout, rest)
+}
+
+pub struct LocationAsSuperuser<SuperuserLocation, RuntimeOrigin>(
+	PhantomData<(SuperuserLocation, RuntimeOrigin)>,
+);
+impl<SuperuserLocation: Get<Location>, RuntimeOrigin: OriginTrait> ConvertOrigin<RuntimeOrigin>
+	for LocationAsSuperuser<SuperuserLocation, RuntimeOrigin>
+{
+	fn convert_origin(
+		origin: impl Into<Location>,
+		kind: OriginKind,
+	) -> Result<RuntimeOrigin, Location> {
+		let origin = origin.into();
+		log::trace!(target: "xcm::origin_conversion", "LocationAsSuperuser origin: {:?}, kind: {:?}", origin, kind);
+		match (kind, &origin) {
+			(OriginKind::Superuser, loc) if *loc == SuperuserLocation::get() =>
+				Ok(RuntimeOrigin::root()),
+			_ => Err(origin),
+		}
+	}
 }
 
 // ---- TODO: Above is copy pasted from sdk, remove once we pull the version containing

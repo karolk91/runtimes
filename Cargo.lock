@@ -11265,12 +11265,16 @@ checksum = "c08c74e62047bb2de4ff487b251e4a92e24f48745648451635cec7d591162d9f"
 name = "relay-common"
 version = "1.0.0"
 dependencies = [
+ "frame-support",
+ "log",
  "pallet-staking-reward-fn",
  "parity-scale-codec",
  "polkadot-primitives",
  "scale-info",
  "sp-api",
  "sp-runtime 39.0.5",
+ "staging-xcm",
+ "staging-xcm-executor",
 ]
 
 [[package]]

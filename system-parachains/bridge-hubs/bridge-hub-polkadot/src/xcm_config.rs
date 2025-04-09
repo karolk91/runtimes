@@ -28,6 +28,7 @@ use frame_support::{
 use frame_system::EnsureRoot;
 use pallet_collator_selection::StakingPotAccountId;
 use pallet_xcm::XcmPassthrough;
+use pallets_common::LocationAsSuperuser;
 use parachains_common::xcm_config::{
 	AllSiblingSystemParachains, ConcreteAssetFromSystem, ParentRelayOrSiblingParachains,
 	RelayOrOtherSystemParachains,
@@ -53,7 +54,6 @@ use xcm_executor::{
 	traits::{ConvertLocation, FeeManager, FeeReason, FeeReason::Export},
 	XcmExecutor,
 };
-use pallets_common::LocationAsSuperuser;
 
 parameter_types! {
 	pub const DotRelayLocation: Location = Location::parent();
@@ -182,7 +182,7 @@ pub type Barrier = TrailingSetTopicAsId<
 						ParentOrParentsPlurality,
 						FellowsPlurality,
 						Equals<RelayTreasuryLocation>,
-						ContainsAssetHub
+						ContainsAssetHub,
 					)>,
 					// Subscriptions for version tracking are OK.
 					AllowSubscriptionsFrom<ParentRelayOrSiblingParachains>,

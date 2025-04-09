@@ -88,18 +88,12 @@ mod tests {
 		));
 
 		// Same Location but different origin kind
-		assert!(matches!(
-			test_conversion(SuperuserLocation::get(), OriginKind::Native),
-			Err(..)
-		));
+		assert!(matches!(test_conversion(SuperuserLocation::get(), OriginKind::Native), Err(..)));
 		assert!(matches!(
 			test_conversion(SuperuserLocation::get(), OriginKind::SovereignAccount),
 			Err(..)
 		));
-		assert!(matches!(
-			test_conversion(SuperuserLocation::get(), OriginKind::Xcm),
-			Err(..)
-		));
+		assert!(matches!(test_conversion(SuperuserLocation::get(), OriginKind::Xcm), Err(..)));
 
 		// No other location should result in successful conversion to Root
 		// thus expecting Err in all cases below

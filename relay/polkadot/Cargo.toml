@@ -104,6 +104,7 @@ polkadot-runtime-common = { workspace = true }
 runtime-parachains = { workspace = true }
 polkadot-primitives = { workspace = true }
 relay-common = { workspace = true }
+pallets-common = { workspace = true }
 
 xcm = { workspace = true }
 xcm-executor = { workspace = true }
@@ -202,6 +203,7 @@ std = [
 	"polkadot-runtime-common/std",
 	"polkadot-runtime-constants/std",
 	"relay-common/std",
+	"pallets-common/std",
 	"runtime-parachains/std",
 	"scale-info/std",
 	"serde_json/std",

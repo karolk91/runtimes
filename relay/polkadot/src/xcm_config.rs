@@ -46,7 +46,8 @@ use xcm_builder::{
 	WeightInfoBounds, WithComputedOrigin, WithUniqueTopic, XcmFeeManagerFromComponents,
 };
 
-use relay_common::LocationAsSuperuser;
+use crate::ContainsAssetHub;
+use pallets_common::LocationAsSuperuser;
 
 pub use pallet_rc_migrator::xcm_config::*;
 
@@ -116,7 +117,7 @@ type LocalOriginConverter = (
 	// Xcm origins can be represented natively under the Xcm pallet's Xcm origin.
 	XcmPassthrough<RuntimeOrigin>,
 	// AssetHub can execute as root
-	LocationAsSuperuser<AssetHubLocation, RuntimeOrigin>,
+	LocationAsSuperuser<ContainsAssetHub, RuntimeOrigin>,
 );
 
 parameter_types! {

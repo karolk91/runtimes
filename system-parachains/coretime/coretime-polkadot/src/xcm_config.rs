@@ -47,6 +47,7 @@ use xcm_builder::{
 	XcmFeeManagerFromComponents,
 };
 use xcm_executor::{traits::ConvertLocation, XcmExecutor};
+use pallets_common::LocationAsSuperuser;
 
 parameter_types! {
 	pub const DotRelayLocation: Location = Location::parent();
@@ -62,6 +63,7 @@ parameter_types! {
 	pub const GovernanceLocation: Location = Location::parent();
 	pub FellowshipLocation: Location = Location::new(1, Parachain(system_parachain::COLLECTIVES_ID));
 	pub StakingPot: AccountId = CollatorSelection::account_id();
+	pub AssetHubLocation: Location = (Parent, Parachain(system_parachain::ASSET_HUB_ID)).into();
 }
 
 /// Type for specifying how a `Location` can be converted into an `AccountId`.
@@ -113,6 +115,13 @@ pub type RegionTransactor = NonFungibleAdapter<
 /// Means for transacting assets on this chain.
 pub type AssetTransactors = (FungibleTransactor, RegionTransactor);
 
+pub struct ContainsAssetHub;
+impl Contains<Location> for ContainsAssetHub {
+	fn contains(loc: &Location) -> bool {
+		*loc == AssetHubLocation::get()
+	}
+}
+
 /// This is the type we use to convert an (incoming) XCM origin into a local `Origin` instance,
 /// ready for dispatching a transaction with XCM's `Transact`.
 ///
@@ -136,6 +145,8 @@ pub type XcmOriginToTransactDispatchOrigin = (
 	SignedAccountId32AsNative<RelayNetwork, RuntimeOrigin>,
 	// XCM origins can be represented natively under the XCM pallet's `Xcm` origin.
 	XcmPassthrough<RuntimeOrigin>,
+	// AssetHub can execute as root
+	LocationAsSuperuser<ContainsAssetHub, RuntimeOrigin>,
 );
 
 pub struct ParentOrParentsPlurality;
@@ -180,6 +191,7 @@ pub type Barrier = TrailingSetTopicAsId<
 						ParentOrParentsPlurality,
 						FellowsPlurality,
 						Equals<RelayTreasuryLocation>,
+						ContainsAssetHub
 					)>,
 					// Subscriptions for version tracking are OK.
 					AllowSubscriptionsFrom<ParentRelayOrSiblingParachains>,

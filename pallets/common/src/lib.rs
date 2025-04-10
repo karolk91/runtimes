@@ -45,7 +45,7 @@ impl<SuperuserLocation: Contains<Location>, RuntimeOrigin: OriginTrait> ConvertO
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use frame_support::{construct_runtime, derive_impl, parameter_types};
+	use frame_support::{construct_runtime, derive_impl, parameter_types, traits::Equals};
 	use xcm::latest::{Junction::*, Junctions::*, OriginKind};
 
 	type Block = frame_system::mocking::MockBlock<Test>;
@@ -66,17 +66,12 @@ mod tests {
 		pub SuperuserLocation: Location = Location::new(0, Parachain(1));
 	}
 
-	pub struct ContainsSuperuser;
-	impl Contains<Location> for ContainsSuperuser {
-		fn contains(loc: &Location) -> bool {
-			*loc == SuperuserLocation::get()
-		}
-	}
-
 	#[test]
 	fn superuser_location_works() {
 		let test_conversion = |loc, kind| {
-			LocationAsSuperuser::<ContainsSuperuser, RuntimeOrigin>::convert_origin(loc, kind)
+			LocationAsSuperuser::<Equals<SuperuserLocation>, RuntimeOrigin>::convert_origin(
+				loc, kind,
+			)
 		};
 
 		// Location that was set as SuperUserLocation should result in success conversion to Root

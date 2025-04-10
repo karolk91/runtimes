@@ -22,6 +22,9 @@ use frame_support::traits::{Contains, OriginTrait};
 use xcm::latest::{Location, OriginKind};
 use xcm_executor::traits::ConvertOrigin;
 
+/// TODO: `LocationAsSuperuser` is temporary placed here, the final solution will be imported from `xcm_builder` (depends on backports) instead.
+/// 
+/// TODO: rustdocs here
 pub struct LocationAsSuperuser<SuperuserLocation, RuntimeOrigin>(
 	PhantomData<(SuperuserLocation, RuntimeOrigin)>,
 );

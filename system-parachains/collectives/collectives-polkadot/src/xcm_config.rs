@@ -109,13 +109,6 @@ pub type FungibleTransactor = FungibleAdapter<
 	(),
 >;
 
-pub struct ContainsAssetHub;
-impl Contains<Location> for ContainsAssetHub {
-	fn contains(loc: &Location) -> bool {
-		*loc == AssetHubLocation::get()
-	}
-}
-
 /// This is the type we use to convert an (incoming) XCM origin into a local `Origin` instance,
 /// ready for dispatching a transaction with Xcm's `Transact`.
 ///
@@ -140,7 +133,7 @@ pub type XcmOriginToTransactDispatchOrigin = (
 	// Xcm origins can be represented natively under the Xcm pallet's Xcm origin.
 	XcmPassthrough<RuntimeOrigin>,
 	// AssetHub can execute as root
-	LocationAsSuperuser<ContainsAssetHub, RuntimeOrigin>,
+	LocationAsSuperuser<Equals<AssetHubLocation>, RuntimeOrigin>,
 );
 
 parameter_types! {
@@ -183,7 +176,7 @@ pub type Barrier = TrailingSetTopicAsId<
 					AllowExplicitUnpaidExecutionFrom<(
 						ParentOrParentsPlurality,
 						Equals<RelayTreasuryLocation>,
-						ContainsAssetHub,
+						Equals<AssetHubLocation>,
 					)>,
 					// Subscriptions for version tracking are OK.
 					AllowSubscriptionsFrom<ParentRelayOrSiblingParachains>,

@@ -115,13 +115,6 @@ pub type RegionTransactor = NonFungibleAdapter<
 /// Means for transacting assets on this chain.
 pub type AssetTransactors = (FungibleTransactor, RegionTransactor);
 
-pub struct ContainsAssetHub;
-impl Contains<Location> for ContainsAssetHub {
-	fn contains(loc: &Location) -> bool {
-		*loc == AssetHubLocation::get()
-	}
-}
-
 /// This is the type we use to convert an (incoming) XCM origin into a local `Origin` instance,
 /// ready for dispatching a transaction with XCM's `Transact`.
 ///
@@ -146,7 +139,7 @@ pub type XcmOriginToTransactDispatchOrigin = (
 	// XCM origins can be represented natively under the XCM pallet's `Xcm` origin.
 	XcmPassthrough<RuntimeOrigin>,
 	// AssetHub can execute as root
-	LocationAsSuperuser<ContainsAssetHub, RuntimeOrigin>,
+	LocationAsSuperuser<Equals<AssetHubLocation>, RuntimeOrigin>,
 );
 
 pub struct ParentOrParentsPlurality;
@@ -191,7 +184,7 @@ pub type Barrier = TrailingSetTopicAsId<
 						ParentOrParentsPlurality,
 						FellowsPlurality,
 						Equals<RelayTreasuryLocation>,
-						ContainsAssetHub,
+						Equals<AssetHubLocation>,
 					)>,
 					// Subscriptions for version tracking are OK.
 					AllowSubscriptionsFrom<ParentRelayOrSiblingParachains>,

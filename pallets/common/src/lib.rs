@@ -22,9 +22,13 @@ use frame_support::traits::{Contains, OriginTrait};
 use xcm::latest::{Location, OriginKind};
 use xcm_executor::traits::ConvertOrigin;
 
-/// TODO: `LocationAsSuperuser` is temporary placed here, the final solution will be imported from `xcm_builder` (depends on backports) instead.
-/// 
-/// TODO: rustdocs here
+/// TODO: `LocationAsSuperuser` is temporary placed here, the final solution will be imported from
+/// `xcm_builder` (depends on backports) instead.
+///
+/// Implements `ConvertOrigin` to convert a `Location` into `RuntimeOrigin::root()`.
+///
+/// This is typically used when configuring `pallet-xcm` to allow a remote `Location`
+/// to act as the `Root` origin on the local chain.
 pub struct LocationAsSuperuser<SuperuserLocation, RuntimeOrigin>(
 	PhantomData<(SuperuserLocation, RuntimeOrigin)>,
 );

@@ -67,7 +67,7 @@ impl<T: Config> Pallet<T> {
 		}
 
 		pallet_vesting::Vesting::<T>::insert(&message.who, &ah_schedules);
-		log::warn!(target: LOG_TARGET, "Integrated vesting schedule for {:?}, len {}", message.who, ah_schedules.len());
+		log::debug!(target: LOG_TARGET, "Integrated vesting schedule for {:?}, len {}", message.who, ah_schedules.len());
 
 		Ok(())
 	}
@@ -99,10 +99,12 @@ impl<T: Config> crate::types::AhMigrationCheck for VestingMigrator<T> {
 
 	fn pre_check(_: Self::RcPrePayload) -> Self::AhPrePayload {
 		let vesting_schedules: Vec<_> = pallet_vesting::Vesting::<T>::iter().collect();
-		assert!(
-			vesting_schedules.is_empty(),
-			"Vesting schedules should be empty before migration starts"
-		);
+		assert!(vesting_schedules.is_empty(), "Assert storage 'Vesting::Vesting::ah_pre::empty'");
+		assert_eq!(
+			alias::StorageVersion::<T>::get(),
+			alias::Releases::V0,
+			"Vesting::StorageVersion::ah_post::empty"
+		)
 	}
 
 	fn post_check(rc_pre_payload: Self::RcPrePayload, _: Self::AhPrePayload) {
@@ -137,10 +139,23 @@ impl<T: Config> crate::types::AhMigrationCheck for VestingMigrator<T> {
 			})
 			.collect();
 
+		// Assert storage "Vesting::Vesting::ah_post::correct"
+		// Assert storage "Vesting::Vesting::ah_post::consistent"
 		assert_eq!(
 			rc_pre,
 			all_post,
 			"Vesting schedules mismatch: Asset Hub schedules differ from original Relay Chain schedules"
 		);
+
+		// Assert storage "Vesting::Vesting::ah_post::length"
+		assert_eq!(
+			rc_pre.len(),
+			all_post.len(),
+			"Vesting schedules mismatch: Asset Hub schedules differ from original Relay Chain schedules"
+		);
+
+		// Assert storage "Vesting::StorageVersion::ah_post::correct"
+		// Assert storage "Vesting::StorageVersion::ah_post::consistent"
+		assert_eq!(alias::StorageVersion::<T>::get(), alias::Releases::V1, "Vesting StorageVersion mismatch: Asset Hub schedules differ from original Relay Chain schedules")
 	}
 }

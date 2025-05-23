@@ -20,6 +20,7 @@ use crate::{types::*, *};
 use alias::UnstakeRequest;
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub enum FastUnstakeStage<AccountId> {
 	StorageValues,
 	Queue(Option<AccountId>),
@@ -38,6 +39,7 @@ pub enum FastUnstakeStage<AccountId> {
 )]
 #[codec(mel_bound(T: Config))]
 #[scale_info(skip_type_params(T))]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub enum RcFastUnstakeMessage<T: pallet_fast_unstake::Config> {
 	StorageValues { values: FastUnstakeStorageValues<T> },
 	Queue { member: (T::AccountId, alias::BalanceOf<T>) },
@@ -56,6 +58,7 @@ pub enum RcFastUnstakeMessage<T: pallet_fast_unstake::Config> {
 )]
 #[codec(mel_bound(T: Config))]
 #[scale_info(skip_type_params(T))]
+#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 pub struct FastUnstakeStorageValues<T: pallet_fast_unstake::Config> {
 	pub head: Option<UnstakeRequest<T>>,
 	pub eras_to_check_per_block: u32,
@@ -88,13 +91,23 @@ impl<T: Config> PalletMigration for FastUnstakeMigrator<T> {
 		weight_counter: &mut WeightMeter,
 	) -> Result<Option<Self::Key>, Self::Error> {
 		let mut inner_key = current_key.unwrap_or(FastUnstakeStage::StorageValues);
-		let mut messages = Vec::new();
+		let mut messages = XcmBatchAndMeter::new_from_config::<T>();
 
 		loop {
-			if weight_counter
-				.try_consume(<T as frame_system::Config>::DbWeight::get().reads_writes(1, 1))
-				.is_err()
+			if weight_counter.try_consume(T::DbWeight::get().reads_writes(1, 1)).is_err() ||
+				weight_counter.try_consume(messages.consume_weight()).is_err()
 			{
+				log::info!("RC weight limit reached at batch length {}, stopping", messages.len());
+				if messages.is_empty() {
+					return Err(Error::OutOfWeight);
+				} else {
+					break;
+				}
+			}
+			if T::MaxAhWeight::get()
+				.any_lt(T::AhWeightInfo::receive_fast_unstake_messages((messages.len() + 1) as u32))
+			{
+				log::info!("AH weight limit reached at batch length {}, stopping", messages.len());
 				if messages.is_empty() {
 					return Err(Error::OutOfWeight);
 				} else {
@@ -141,7 +154,7 @@ impl<T: Config> PalletMigration for FastUnstakeMigrator<T> {
 			Pallet::<T>::send_chunked_xcm_and_track(
 				messages,
 				|messages| types::AhMigratorCall::<T>::ReceiveFastUnstakeMessages { messages },
-				|_| Weight::from_all(1), // TODO
+				|len| T::AhWeightInfo::receive_fast_unstake_messages(len),
 			)?;
 		}
 
@@ -150,6 +163,39 @@ impl<T: Config> PalletMigration for FastUnstakeMigrator<T> {
 		} else {
 			Ok(Some(inner_key))
 		}
+	}
+}
+
+#[cfg(feature = "std")]
+impl<T: Config> crate::types::RcMigrationCheck for FastUnstakeMigrator<T> {
+	type RcPrePayload = (Vec<(T::AccountId, alias::BalanceOf<T>)>, u32); // (queue, eras_to_check)
+
+	fn pre_check() -> Self::RcPrePayload {
+		let queue: Vec<_> = pallet_fast_unstake::Queue::<T>::iter().collect();
+		let eras_to_check = pallet_fast_unstake::ErasToCheckPerBlock::<T>::get();
+
+		assert!(
+			alias::Head::<T>::get().is_none(),
+			"Staking Heads must be empty on the relay chain before the migration"
+		);
+
+		(queue, eras_to_check)
+	}
+
+	fn post_check(_: Self::RcPrePayload) {
+		// RC post: Ensure that entries have been deleted
+		assert!(
+			alias::Head::<T>::get().is_none(),
+			"Assert storage 'FastUnstake::Head::rc_post::empty'"
+		);
+		assert!(
+			pallet_fast_unstake::Queue::<T>::iter().next().is_none(),
+			"Assert storage 'FastUnstake::Queue::rc_post::empty'"
+		);
+		assert!(
+			pallet_fast_unstake::ErasToCheckPerBlock::<T>::get() == 0,
+			"Assert storage 'FastUnstake::ErasToCheckPerBlock::rc_post::empty'"
+		);
 	}
 }
 
@@ -179,6 +225,7 @@ pub mod alias {
 		MaxEncodedLen,
 	)]
 	#[scale_info(skip_type_params(T))]
+	#[cfg_attr(feature = "stable2503", derive(DecodeWithMemTracking))]
 	pub struct UnstakeRequest<T: pallet_fast_unstake::Config> {
 		/// This list of stashes are being processed in this request, and their corresponding
 		/// deposit.

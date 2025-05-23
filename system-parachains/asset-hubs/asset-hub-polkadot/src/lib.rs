@@ -60,27 +60,26 @@
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 // Genesis preset configurations.
+pub mod ah_migration;
 pub mod genesis_config_presets;
 pub mod governance;
 mod impls;
-mod migration;
 pub mod staking;
 pub mod treasury;
 mod weights;
 pub mod xcm_config;
 
-use core::cmp::Ordering;
-
+use ah_migration::{RcToAhFreezeReason, RcToAhHoldReason};
 use assets_common::{
 	foreign_creators::ForeignCreators,
 	local_and_foreign_assets::{LocalFromLeft, TargetFromLeft},
 	matching::{FromNetwork, FromSiblingParachain},
 	AssetIdForTrustBackedAssetsConvert,
 };
+use core::cmp::Ordering;
 use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
 use governance::{pallet_custom_origins, Treasurer, TreasurySpender};
-use migration::{RcToAhFreezeReason, RcToAhHoldReason};
 use polkadot_core_primitives::AccountIndex;
 use polkadot_runtime_constants::time::{DAYS as RC_DAYS, HOURS as RC_HOURS, MINUTES as RC_MINUTES};
 use sp_api::impl_runtime_apis;
@@ -113,8 +112,8 @@ use frame_support::{
 		fungibles,
 		tokens::imbalance::ResolveAssetTo,
 		AsEnsureOriginWithArg, ConstBool, ConstU32, ConstU64, ConstU8, Contains, EitherOf,
-		EitherOfDiverse, Equals, EverythingBut, InstanceFilter, LinearStoragePrice,
-		NeverEnsureOrigin, PrivilegeCmp, TransformOrigin, WithdrawReasons,
+		EitherOfDiverse, Equals, InstanceFilter, LinearStoragePrice, NeverEnsureOrigin,
+		PrivilegeCmp, TheseExcept, TransformOrigin, WithdrawReasons,
 	},
 	weights::{ConstantMultiplier, Weight, WeightToFee as _},
 	PalletId,
@@ -171,7 +170,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("statemint"),
 	impl_name: create_runtime_str!("statemint"),
 	authoring_version: 1,
-	spec_version: 1_004_002,
+	spec_version: 1_005_000,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 15,
@@ -218,7 +217,7 @@ impl Contains<RuntimeCall> for VestedTransferCalls {
 
 // Configure FRAME pallets to include in runtime.
 impl frame_system::Config for Runtime {
-	type BaseCallFilter = EverythingBut<VestedTransferCalls>;
+	type BaseCallFilter = TheseExcept<AhMigrator, VestedTransferCalls>;
 	type BlockWeights = RuntimeBlockWeights;
 	type BlockLength = RuntimeBlockLength;
 	type AccountId = AccountId;
@@ -1060,7 +1059,7 @@ parameter_types! {
 }
 
 impl pallet_preimage::Config for Runtime {
-	type WeightInfo = ();
+	type WeightInfo = weights::pallet_preimage::WeightInfo<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type ManagerOrigin = EnsureRoot<AccountId>;
@@ -1085,7 +1084,7 @@ pub struct OriginPrivilegeCmp;
 impl PrivilegeCmp<OriginCaller> for OriginPrivilegeCmp {
 	fn cmp_privilege(left: &OriginCaller, right: &OriginCaller) -> Option<Ordering> {
 		if left == right {
-			return Some(Ordering::Equal)
+			return Some(Ordering::Equal);
 		}
 
 		match (left, right) {
@@ -1107,7 +1106,7 @@ impl pallet_scheduler::Config for Runtime {
 	// Also allow Treasurer to schedule recurring payments.
 	type ScheduleOrigin = EitherOf<EnsureRoot<AccountId>, Treasurer>;
 	type MaxScheduledPerBlock = MaxScheduledPerBlock;
-	type WeightInfo = (); // TODO: weights::pallet_scheduler::WeightInfo<Runtime>;
+	type WeightInfo = weights::pallet_scheduler::WeightInfo<Runtime>;
 	type OriginPrivilegeCmp = OriginPrivilegeCmp;
 	type Preimages = Preimage;
 }
@@ -1122,16 +1121,18 @@ impl pallet_claims::Config for Runtime {
 	type Prefix = PalletClaimsPrefix;
 	/// Only Root can move a claim.
 	type MoveClaimOrigin = EnsureRoot<AccountId>;
-	type WeightInfo = pallet_claims::TestWeightInfo; // TODOweights::polkadot_runtime_common_claims::WeightInfo<Runtime>;
+	type WeightInfo = weights::polkadot_runtime_common_claims::WeightInfo<Runtime>;
 }
 
 impl pallet_ah_ops::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type RcBlockNumberProvider = RelaychainDataProvider<Runtime>;
+	type WeightInfo = weights::pallet_ah_ops::WeightInfo<Runtime>;
 }
 
 impl pallet_ah_migrator::Config for Runtime {
+	type RuntimeHoldReason = RuntimeHoldReason;
 	type RuntimeEvent = RuntimeEvent;
 	type ManagerOrigin = EitherOfDiverse<
 		EnsureRoot<AccountId>,
@@ -1140,25 +1141,24 @@ impl pallet_ah_migrator::Config for Runtime {
 	type Currency = Balances;
 	type Assets = NativeAndAssets;
 	type CheckingAccount = xcm_config::CheckingAccount;
-	type RcHoldReason = migration::RcHoldReason;
-	type RcFreezeReason = migration::RcFreezeReason;
+	type RcHoldReason = ah_migration::RcHoldReason;
+	type RcFreezeReason = ah_migration::RcFreezeReason;
 	type RcToAhHoldReason = RcToAhHoldReason;
 	type RcToAhFreezeReason = RcToAhFreezeReason;
-	type RcProxyType = migration::RcProxyType;
-	type RcToProxyType = migration::RcToProxyType;
-	type RcToAhDelay = migration::RcToAhDelay;
+	type RcProxyType = ah_migration::RcProxyType;
+	type RcToProxyType = ah_migration::RcToProxyType;
+	type RcToAhDelay = ah_migration::RcToAhDelay;
 	type RcBlockNumberProvider = RelaychainDataProvider<Runtime>;
-	type RcToAhCall = migration::RcToAhCall;
-	type RcPalletsOrigin = migration::RcPalletsOrigin;
-	type RcToAhPalletsOrigin = migration::RcToAhPalletsOrigin;
+	type RcToAhCall = ah_migration::RcToAhCall;
+	type RcPalletsOrigin = ah_migration::RcPalletsOrigin;
+	type RcToAhPalletsOrigin = ah_migration::RcToAhPalletsOrigin;
 	type Preimage = Preimage;
 	type SendXcm = xcm_config::XcmRouter;
-	// TODO: weights::pallet_ah_migrator::WeightInfo;
-	type AhWeightInfo = ();
-	type TreasuryAccounts = migration::TreasuryAccounts;
-	type RcToAhTreasurySpend = migration::RcToAhTreasurySpend;
-	#[cfg(feature = "runtime-benchmarks")]
-	type BenchmarkHelper = pallet_ah_migrator::benchmarking::BenchmarkFactory<Runtime>;
+	type AhWeightInfo = weights::pallet_ah_migrator::WeightInfo<Runtime>;
+	type TreasuryAccounts = ah_migration::TreasuryAccounts;
+	type RcToAhTreasurySpend = ah_migration::RcToAhTreasurySpend;
+	type AhIntraMigrationCalls = ah_migration::call_filter::CallsEnabledDuringMigration;
+	type AhPostMigrationCalls = ah_migration::call_filter::CallsEnabledAfterMigration;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -1313,6 +1313,11 @@ mod benches {
 		[pallet_child_bounties, ChildBounties]
 		[pallet_asset_rate, AssetRate]
 		[pallet_ah_migrator, AhMigrator]
+		[polkadot_runtime_common::claims, Claims]
+		[pallet_ah_ops, AhOps]
+		// TODO: [pallet_bags_list, VoterList]
+		// TODO: [pallet_fast_unstake, FastUnstake]
+
 		// XCM
 		[pallet_xcm, PalletXcmExtrinsiscsBenchmark::<Runtime>]
 		// Bridges

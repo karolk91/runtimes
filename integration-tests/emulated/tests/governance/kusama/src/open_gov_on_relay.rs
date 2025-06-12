@@ -48,7 +48,6 @@ fn relaychain_can_authorize_upgrade_for_itself() {
 	// ok origin
 	let ok_origin: KusamaRuntimeOrigin = Origin::WhitelistedCaller.into();
 
-	// store preimage
 	let call_hash = call_hash_of::<Kusama>(&authorize_upgrade);
 
 	// Err - when dispatch non-whitelisted
@@ -124,7 +123,6 @@ fn relaychain_can_authorize_upgrade_for_system_chains() {
 	// ok origin
 	let ok_origin: KusamaRuntimeOrigin = Origin::WhitelistedCaller.into();
 
-	// store preimage
 	let call_hash = call_hash_of::<Kusama>(&authorize_upgrade);
 
 	// Err - when dispatch non-whitelisted

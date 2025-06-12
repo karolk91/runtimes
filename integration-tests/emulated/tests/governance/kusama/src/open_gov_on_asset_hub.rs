@@ -139,6 +139,7 @@ fn assethub_can_authorize_upgrade_for_relay_chain() {
 		use kusama_runtime::governance::pallet_custom_origins::Origin::Fellows as FellowsOrigin;
 		let fellows_origin: AssetHubRuntimeOrigin = FellowsOrigin.into();
 		assert_ok!(whitelist_call.dispatch(fellows_origin));
+		assert_whitelisted!(AssetHubKusama, call_hash);
 	});
 
 	// Err - when dispatch wrong origin

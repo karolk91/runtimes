@@ -529,6 +529,108 @@ fn send_dot_from_penpal_polkadot_through_asset_hub_polkadot_to_asset_hub_kusama(
 	assert!(dot_in_reserve_on_pah_after <= dot_in_reserve_on_pah_before + amount);
 }
 
+
+use polkadot_system_emulated_network::penpal_emulated_chain::LocalTeleportableToAssetHub as PenpalLocalTeleportableToAssetHub;
+
+#[test]
+fn send_custom_asset_from_penpal_polkadot_through_asset_hub_polkadot_to_asset_hub_kusama() {
+	let amount = ASSET_HUB_POLKADOT_ED * 10_000_000_000;
+	let sender = PenpalBSender::get();
+	let receiver = AssetHubKusamaReceiver::get();
+	let local_asset_hub = PenpalB::sibling_location_of(AssetHubPolkadot::para_id());
+	let (dot_at_polkadot_parachains, dot_at_polkadot_parachains_latest, dot_at_asset_hub_kusama, _) =
+		set_up_dot_for_penpal_polkadot_through_pah_to_kah(&sender, amount);
+
+	let custom_asset_at_polkadot_parachains_latest = PenpalLocalTeleportableToAssetHub::get();
+	// let asset_id_on_penpal = match custom_asset_at_polkadot_parachains_latest.last() {
+	// 	Some(Junction::GeneralIndex(id)) => *id as u32,
+	// 	_ => unreachable!(),
+	// };
+
+	let sov_kah_on_pah = AssetHubPolkadot::sovereign_account_of_parachain_on_other_global_consensus(
+		Kusama,
+		AssetHubKusama::para_id(),
+	);
+	let dot_in_reserve_on_pah_before =
+		<AssetHubPolkadot as Chain>::account_data_of(sov_kah_on_pah.clone()).free;
+	let sender_dot_before = PenpalB::execute_with(|| {
+		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
+		<ForeignAssets as Inspect<_>>::balance(custom_asset_at_polkadot_parachains_latest.clone(), &sender)
+	});
+	let receiver_dot_before =
+		foreign_balance_on_ah_kusama(dot_at_asset_hub_kusama.clone(), &receiver);
+
+	set_up_pool_with_ksm_on_ah_kusama(dot_at_asset_hub_kusama.clone(), true);
+
+	// Send DOTs over bridge
+	{
+		let destination = asset_hub_kusama_location();
+		let assets: Assets = vec![
+			(dot_at_polkadot_parachains_latest.clone(), amount).into(),
+			(custom_asset_at_polkadot_parachains_latest.clone(), amount).into(),
+		].into();
+		let asset_transfer_type = TransferType::Teleport;
+		let fees_id: AssetId = dot_at_polkadot_parachains_latest.clone().into();
+		let fees_transfer_type = TransferType::RemoteReserve(local_asset_hub.into());
+		let beneficiary: Location =
+			AccountId32Junction { network: None, id: receiver.clone().into() }.into();
+		let custom_xcm_on_dest = Xcm::<()>(vec![DepositAsset {
+			assets: Wild(AllCounted(assets.len() as u32)),
+			beneficiary,
+		}]);
+		send_assets_from_polkadot_chain_through_polkadot_ah_to_kusama_ah(|| {
+			assert_ok!(PenpalB::execute_with(|| {
+				let signed_origin = <PenpalB as Chain>::RuntimeOrigin::signed(sender.clone());
+				<PenpalB as PenpalBPallet>::PolkadotXcm::transfer_assets_using_type_and_then(
+					signed_origin,
+					bx!(destination.into()),
+					bx!(assets.into()),
+					bx!(asset_transfer_type),
+					bx!(fees_id.into()),
+					bx!(fees_transfer_type),
+					bx!(VersionedXcm::from(custom_xcm_on_dest)),
+					WeightLimit::Unlimited,
+				)
+			}));
+		});
+	}
+
+	// process KAH incoming message and check events
+	AssetHubKusama::execute_with(|| {
+		type RuntimeEvent = <AssetHubKusama as Chain>::RuntimeEvent;
+		assert_expected_events!(
+			AssetHubKusama,
+			vec![
+				// issue DOTs on KAH
+				RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, owner, .. }) => {
+					asset_id: *asset_id == dot_at_polkadot_parachains.clone(),
+					owner: owner == &receiver,
+				},
+				// message processed successfully
+				RuntimeEvent::MessageQueue(
+					pallet_message_queue::Event::Processed { success: true, .. }
+				) => {},
+			]
+		);
+	});
+
+	let sender_dot_after = PenpalB::execute_with(|| {
+		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
+		<ForeignAssets as Inspect<_>>::balance(dot_at_polkadot_parachains_latest, &sender)
+	});
+	let receiver_dot_after = foreign_balance_on_ah_kusama(dot_at_asset_hub_kusama, &receiver);
+	let dot_in_reserve_on_pah_after =
+		<AssetHubPolkadot as Chain>::account_data_of(sov_kah_on_pah.clone()).free;
+
+	// Sender's balance is reduced
+	assert!(sender_dot_after < sender_dot_before);
+	// Receiver's balance is increased
+	assert!(receiver_dot_after > receiver_dot_before);
+	// Reserve balance is increased by sent amount (less fess)
+	assert!(dot_in_reserve_on_pah_after > dot_in_reserve_on_pah_before);
+	assert!(dot_in_reserve_on_pah_after <= dot_in_reserve_on_pah_before + amount);
+}
+
 #[test]
 fn send_back_ksm_from_penpal_polkadot_through_asset_hub_polkadot_to_asset_hub_kusama() {
 	let ksm_at_polkadot_parachains = bridged_ksm_at_ah_polkadot();
